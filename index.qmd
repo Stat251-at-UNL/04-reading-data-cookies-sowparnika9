@@ -13,6 +13,7 @@ Make sure that your end-result data has appropriate types for each column - thes
 
 ```{r}
 cookies <- read.csv("choc_chip_cookie_ingredients.csv")
+cookies |> str()
 ```
 
 
