@@ -20,6 +20,7 @@ cookies |> str()
 ```{python}
 import pandas as pd
 cookies = pd.read_csv("choc_chip_cookie_ingredients.csv")
+cookies.info()
 ```
 
 
