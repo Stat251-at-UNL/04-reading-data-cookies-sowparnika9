@@ -2,7 +2,7 @@
 title: "Chocolate Chip Cookies"
 execute:
   error: true
-author: "Your Name"
+author: "Sowparnika"
 output: html_document
 ---
 
@@ -12,11 +12,13 @@ First, read in the CSV data of cookie ingredients.
 Make sure that your end-result data has appropriate types for each column - these should match the types provided in the documentation in the README.md file.
 
 ```{r}
-
+cookies <- read.csv("choc_chip_cookie_ingredients.csv")
 ```
 
-```{python}
 
+```{python}
+import pandas as pd
+cookies = pd.read_csv("choc_chip_cookie_ingredients.csv")
 ```
 
 
@@ -34,11 +36,11 @@ Exploratory data analysis is the process of getting familiar with your dataset. 
 
 Generate at least 5 questions you might explore using this database of cookie ingredients.
 
-1.
-2. 
-3. 
-4. 
-5. 
+1. Which ingredients are rarely used?
+2. Do certain ingredients commonly appear together?
+3. Which ingredients appear most frequently? 
+4. How many ingredients does the average recipe contain?
+5. Which recipes use the largest number of different ingredients?
 
 
 ### Skimming the Data
@@ -53,14 +55,23 @@ Install both packages, and read the package documentation ([R](https://cran.r-pr
 
 
 ```{r}
+library(skimr)
+skim(cookies)
 
 ```
 
 ```{python}
-
+from skimpy import skim
+skim(cookies)
 ```
 
 [Part 2] Write 1-2 sentences about what you can tell from each summary display you generate. Did you discover anything new about the data?
+
+R-
+The summaries show that nearly half of the Rating values are missing, which may affect analysis involving ratings. The Quantity variable varies widely, suggesting differences in ingredient amounts across recipes.
+
+Python-
+The dataset contains both numeric and string variables, with ingredient names and units showing consistent formatting but varied lengths.
 
 ### Generating Tables
 
@@ -68,16 +79,103 @@ Another useful technique for exploratory data analysis is to generate summary ta
 You may want to use the `dplyr` package in R (`group_by` or `count` functions), as well as the `groupby` and `count` methods in Pandas. [Python example](https://sparkbyexamples.com/pandas/pandas-groupby-count-examples/), [R example](https://dplyr.tidyverse.org/reference/count.html)
 
 [Part 1] Using R and Python, generate a table that shows what **proportion** of recipes contain each type of ingredient, for the most common 20 ingredients.
+```{r}
+library(dplyr)
+total_recipes <- n_distinct(cookies$Recipe_Index)
+ingredient_props <- cookies %>%
+  distinct(Recipe_Index, Ingredient) %>%      # remove duplicate ingredient entries per recipe
+  count(Ingredient, sort = TRUE) %>%    # count recipes per ingredient
+  mutate(proportion = n / total_recipes) %>%
+  slice_head(n = 20)
+
+ingredient_props
+
+```
+
+```{python}
+import pandas as pd
+
+total_recipes = cookies["Recipe_Index"].nunique()
+
+ingredient_props = (
+    cookies[["Recipe_Index", "Ingredient"]]
+    .drop_duplicates()
+    .groupby("Ingredient")
+    .size()
+    .reset_index(name="count")
+)
+
+ingredient_props["proportion"] = ingredient_props["count"] / total_recipes
+
+ingredient_props = ingredient_props.sort_values(
+    by="count", ascending=False
+).head(20)
+
+ingredient_props
+
+
+```
 
 [Part 2] Print out a character string that lists all of the ingredients that do not appear in at least 20 recipes.
+```{r}
+library(dplyr)
 
+# Count number of recipes per ingredient
+ingredient_counts <- cookies %>%
+  distinct(Recipe_Index, Ingredient) %>%
+  count(Ingredient)
 
-(Delete this note, but you can include data values inline in markdown text by using backticks, at least in R. For instance, here is R's built in value for pi: `r pi`. Unfortunately, this doesn't work in python using the knitr markdown engine, but you can print the list out in python anyways using a code chunk.)
+# Find ingredients appearing in fewer than 20 recipes
+rare_ingredients <- ingredient_counts %>%
+  filter(n < 20) %>%
+  pull(Ingredient)
+
+# Print as a single character string
+paste(rare_ingredients, collapse = ", ")
+
+```
+```{python}
+# Count recipes per ingredient
+ingredient_counts = (
+    cookies[["Recipe_Index", "Ingredient"]]
+    .drop_duplicates()
+    .groupby("Ingredient")
+    .size()
+    .reset_index(name="count")
+)
+
+# Filter ingredients with fewer than 20 recipes
+rare_ingredients = ingredient_counts[
+    ingredient_counts["count"] < 20
+]["Ingredient"]
+
+# Print as a single string
+print(", ".join(rare_ingredients))
+
+```
 
 ### Visualization
 
 Using whatever plotting system you are comfortable with in R or python, see if you can create a couple of useful exploratory data visualizations which address one of the questions you wrote above - or another question which you've come up with as you've worked on this assignment.
 
 [Part 1] Create at least one plot (it doesn't have to be pretty) that showcases an interesting facet of the data.
+```{r}
+library(dplyr)
+library(ggplot2)
+
+ingredients_per_recipe <- cookies %>%
+  distinct(Recipe_Index, Ingredient) %>%
+  count(Recipe_Index)
+
+ggplot(ingredients_per_recipe, aes(x = n)) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Number of Ingredients per Recipe",
+       x = "Number of Ingredients",
+       y = "Number of Recipes") +
+  theme_minimal()
+
+```
 
 [Part 2] Write 2-3 sentences about what you can learn from that plot and what directions you might want to investigate from here.
+
+Most recipes have around 9–10 ingredients, so that seems to be the typical number for chocolate chip cookies. Only a few recipes use very few or very many ingredients. This suggests that most recipes follow a similar basic structure, and it might be interesting to see which ingredients are always included and which ones vary.
